@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catur Online — Play with Friends</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jQuery (Dibutuhkan oleh chessboard.js) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Chessboard.js CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    
+    <!-- Chess.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc; /* Slate 50 */
+        }
+        
+        .board-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* Styling the clear-fix for floating elements inside chessboard */
+        .clearfix-7da63 {
+            clear: both;
+        }
+
+        /* Glassmorphism utilities */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        :root { color-scheme: dark; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background:
+                radial-gradient(ellipse at 12% 8%, rgba(16,185,129,.16), transparent 34%),
+                radial-gradient(ellipse at 88% 18%, rgba(59,130,246,.18), transparent 32%),
+                linear-gradient(145deg, #070d19 0%, #0f172a 48%, #111827 100%);
+            color: #f8fafc;
+        }
+        h1, h2, h3 { font-family: 'Outfit', sans-serif; }
+        button, input { font: inherit; }
+        button { -webkit-tap-highlight-color: transparent; }
+        .app-shell { max-width: 1180px; }
+        .glass-panel {
+            background: rgba(15, 23, 42, .72);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(148,163,184,.14);
+            box-shadow: 0 18px 55px rgba(0,0,0,.20);
+        }
+        .brand-mark {
+            display:inline-grid; place-items:center; width:42px; height:42px;
+            border-radius:14px; color:#07131a; font-size:22px;
+            background:linear-gradient(135deg,#6ee7b7,#34d399 55%,#38bdf8);
+            box-shadow:0 8px 24px rgba(52,211,153,.22);
+        }
+        .eyebrow { color:#94a3b8; font-size:.68rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+        .menu-card { border-radius:26px; }
+        .action-btn {
+            border-radius:15px; padding:13px 16px; font-weight:800;
+            transition:transform .2s ease, filter .2s ease, box-shadow .2s ease;
+        }
+        .action-btn:hover { transform:translateY(-2px); filter:brightness(1.08); }
+        .action-btn:active { transform:translateY(0) scale(.99); }
+        .board-container {
+            width:100%; max-width: min( min(68vh, 620px), 100%);
+            margin:0 auto; padding:10px; border-radius:18px;
+            background:rgba(15,23,42,.88);
+            border:1px solid rgba(148,163,184,.18);
+            box-shadow:0 25px 70px rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.025);
+        }
+        #board { width:100%; }
+        .board-bay { width:100%; max-width:620px; margin:auto; }
+        .game-layout { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:22px; align-items:start; }
+        .player-chip { display:flex; align-items:center; gap:11px; min-width:0; }
+        .player-avatar {
+            display:grid; place-items:center; width:42px; height:42px; flex:none;
+            border-radius:14px; background:rgba(148,163,184,.13); font-size:22px;
+            border:1px solid rgba(148,163,184,.16);
+        }
+        .player-card { padding:13px 15px; border-radius:17px; }
+        .live-dot { width:8px; height:8px; border-radius:99px; background:#34d399; box-shadow:0 0 0 4px rgba(52,211,153,.12); }
+        .history-list { max-height:270px; overflow:auto; scrollbar-width:thin; scrollbar-color:#475569 transparent; }
+        .history-row { display:grid; grid-template-columns:28px 1fr 1fr; gap:8px; padding:8px 10px; border-radius:9px; font-family:ui-monospace,monospace; font-size:12px; }
+        .history-row:nth-child(odd) { background:rgba(148,163,184,.055); }
+        .history-row.latest { background:rgba(16,185,129,.13); color:#a7f3d0; }
+        .tool-btn {
+            display:inline-flex; align-items:center; justify-content:center; gap:7px;
+            border:1px solid rgba(148,163,184,.18); border-radius:12px;
+            background:rgba(30,41,59,.72); color:#cbd5e1; padding:9px 12px;
+            font-size:12px; font-weight:700; transition:.18s ease;
+        }
+        .tool-btn:hover { background:rgba(51,65,85,.9); color:white; border-color:rgba(148,163,184,.35); }
+        .status-pill { border:1px solid rgba(52,211,153,.2); background:rgba(16,185,129,.10); border-radius:999px; padding:7px 11px; }
+        .square-55d63.highlight-from, .square-55d63.highlight-to { box-shadow:inset 0 0 0 4px rgba(250,204,21,.72); }
+        .square-55d63.move-hint { position:relative; }
+        .square-55d63.move-hint:after {
+            content:""; position:absolute; width:22%; height:22%; left:39%; top:39%;
+            border-radius:50%; background:rgba(15,23,42,.30); pointer-events:none;
+        }
+        .square-55d63.move-hint.capture-hint:after {
+            width:82%; height:82%; left:9%; top:9%; background:transparent;
+            border:5px solid rgba(239,68,68,.48);
+        }
+        .toast {
+            position:fixed; left:50%; bottom:24px; z-index:80; transform:translate(-50%,20px);
+            opacity:0; pointer-events:none; padding:11px 16px; border-radius:14px;
+            color:#ecfdf5; background:rgba(6,78,59,.96); border:1px solid rgba(110,231,183,.28);
+            box-shadow:0 12px 35px rgba(0,0,0,.3); transition:.25s ease;
+        }
+        .toast.show { opacity:1; transform:translate(-50%,0); }
+        @media (max-width: 850px) {
+            .game-layout { grid-template-columns:1fr; }
+            .game-sidebar { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+            .history-panel { grid-column:1 / -1; }
+            .board-container { max-width:min(88vw,620px); }
+        }
+        @media (max-width: 540px) {
+            body { padding:14px !important; }
+            .game-sidebar { display:flex; flex-direction:column; }
+            .board-container { max-width:100%; padding:5px; border-radius:12px; }
+            .player-card { padding:10px 12px; }
+            .mobile-tools { display:grid; grid-template-columns:1fr 1fr; }
+        }
+
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900">
+        <div class="flex flex-col items-center">
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-lg font-medium text-slate-300">Menghubungkan ke Server...</p>
+        </div>
+    </div>
+
+    <!-- Custom Modal (Pengganti Alert) -->
+    <div id="custom-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div class="glass-panel p-6 rounded-xl w-full max-w-sm text-center transform transition-all shadow-2xl">
+            <h3 id="modal-title" class="text-xl font-bold mb-2 text-white">Informasi</h3>
+            <p id="modal-message" class="text-slate-300 mb-6">Pesan di sini.</p>
+            <button onclick="closeModal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="w-full app-shell">
+        
+        <!-- App Header -->
+        <div class="flex items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-3">
+                <div class="brand-mark">♞</div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Knight<span class="text-emerald-400">Play</span></h1>
+                    <p class="text-xs sm:text-sm text-slate-400">Catur online • Tantang temanmu</p>
+                </div>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 text-xs text-slate-400 glass-panel rounded-full px-4 py-2">
+                <span class="live-dot"></span> Multiplayer real-time
+            </div>
+        </div>
+
+        <!-- Menu View -->
+        <div id="menu-view" class="glass-panel menu-card p-6 sm:p-9 shadow-xl space-y-7 max-w-3xl mx-auto">
+            <div class="text-center space-y-3">
+                <div class="inline-flex items-center gap-2 status-pill text-emerald-300 text-xs font-bold"><span class="live-dot"></span> PILIH MODE PERMAINAN</div>
+                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Siap mengasah <span class="text-emerald-400">strategi?</span></h2>
+                <p class="text-slate-400 text-sm max-w-md mx-auto">Pilih lawan yang ingin kamu hadapi. Satu papan, dua cara bermain.</p>
+            </div>
+
+            <div id="mode-choice" class="grid sm:grid-cols-2 gap-4">
+                <button id="btn-mode-ai" class="glass-panel rounded-2xl p-6 text-left hover:border-emerald-400/50 transition-all">
+                    <div class="text-4xl mb-4">🤖</div>
+                    <div class="eyebrow text-emerald-300 mb-2">MODE 01</div>
+                    <h3 class="text-xl font-extrabold mb-2">Play vs AI</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">Latihan catur melawan komputer. Pilih tingkat kesulitan dan warna bidak.</p>
+                    <div class="mt-5 text-emerald-300 text-sm font-bold">Main melawan AI →</div>
+                </button>
+                <button id="btn-mode-friend" class="glass-panel rounded-2xl p-6 text-left hover:border-sky-400/50 transition-all">
+                    <div class="text-4xl mb-4">♟️</div>
+                    <div class="eyebrow text-sky-300 mb-2">MODE 02</div>
+                    <h3 class="text-xl font-extrabold mb-2">Play with Friend</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">Bermain berdua di satu perangkat atau bertanding online dengan teman.</p>
+                    <div class="mt-5 text-sky-300 text-sm font-bold">Pilih cara bermain →</div>
+                </button>
+            </div>
+
+            <div id="ai-setup" class="hidden space-y-5">
+                <div class="flex items-center justify-between">
+                    <div><div class="eyebrow">PLAY VS AI</div><h3 class="text-2xl font-extrabold">Atur pertandingan</h3></div>
+                    <button class="tool-btn" data-back-menu>← Kembali</button>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <label class="block space-y-2"><span class="eyebrow">Tingkat kesulitan</span>
+                        <select id="ai-difficulty" class="w-full bg-slate-950/70 border border-slate-700 rounded-xl px-4 py-3 text-white">
+                            <option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option>
+                        </select>
+                    </label>
+                    <label class="block space-y-2"><span class="eyebrow">Warna bidak kamu</span>
+                        <select id="ai-color" class="w-full bg-slate-950/70 border border-slate-700 rounded-xl px-4 py-3 text-white">
+                            <option value="w">Putih (jalan pertama)</option><option value="b">Hitam</option>
+                        </select>
+                    </label>
+                </div>
+                <button id="btn-start-ai" class="action-btn w-full bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950">Mulai bermain</button>
+            </div>
+
+            <div id="friend-setup" class="hidden space-y-5">
+                <div class="flex items-center justify-between">
+                    <div><div class="eyebrow">PLAY WITH FRIEND</div><h3 class="text-2xl font-extrabold">Bermain bersama teman</h3></div>
+                    <button class="tool-btn" data-back-menu>← Kembali</button>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <button id="btn-local-game" class="glass-panel rounded-2xl p-5 text-left hover:border-emerald-400/50 transition-all">
+                        <div class="text-3xl mb-3">🧑‍🤝‍🧑</div><h4 class="font-extrabold text-lg">Local Multiplayer</h4>
+                        <p class="text-sm text-slate-400 mt-1">Dua pemain bergantian menggunakan satu perangkat. Tidak perlu internet.</p>
+                    </button>
+                    <button id="btn-online-game" class="glass-panel rounded-2xl p-5 text-left hover:border-sky-400/50 transition-all">
+                        <div class="text-3xl mb-3">🌐</div><h4 class="font-extrabold text-lg">Online Multiplayer</h4>
+                        <p class="text-sm text-slate-400 mt-1">Buat room atau gabung menggunakan kode undangan.</p>
+                    </button>
+                </div>
+            </div>
+
+            <div id="online-setup" class="hidden space-y-5">
+                <div class="flex items-center justify-between">
+                    <div><div class="eyebrow">ONLINE MULTIPLAYER</div><h3 class="text-2xl font-extrabold">Hubungkan dengan teman</h3></div>
+                    <button class="tool-btn" data-back-friend>← Kembali</button>
+                </div>
+                <button id="btn-create-room" class="action-btn w-full bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950">＋ Buat Ruangan Baru</button>
+                <div class="relative flex items-center"><div class="flex-grow border-t border-slate-700"></div><span class="mx-4 text-slate-500 text-xs font-bold tracking-widest">ATAU GABUNG ROOM</span><div class="flex-grow border-t border-slate-700"></div></div>
+                <div class="space-y-3">
+                    <label for="input-room-id" class="eyebrow block text-center">Masukkan kode undangan teman</label>
+                    <input type="text" id="input-room-id" placeholder="KODE ROOM" class="w-full bg-slate-950/70 border border-slate-700 rounded-xl px-4 py-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase text-center font-mono tracking-[.35em] text-lg">
+                    <button id="btn-join-room" class="action-btn w-full bg-slate-700 hover:bg-slate-600 text-white border border-slate-600">Masuk ke Ruangan</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game View -->
+        <div id="game-view" class="hidden w-full">
+            
+            <!-- Room Info Bar -->
+            <div id="room-info-bar" class="w-full glass-panel flex justify-between items-center px-4 sm:px-5 py-4 rounded-2xl mb-5">
+                <div class="flex flex-col">
+                    <span class="eyebrow">Room code</span>
+                    <div class="flex items-center gap-2">
+                        <span id="display-room-id" class="font-mono text-lg font-bold text-emerald-300 uppercase bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 rounded-lg tracking-widest">------</span>
+                        <button id="btn-copy-room" class="text-blue-400 hover:text-blue-300 text-sm" title="Salin ID">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="eyebrow">Match status</span>
+                    <span id="display-status" class="text-sm font-semibold text-emerald-300">Menunggu Lawan...</span>
+                </div>
+            </div>
+
+            <div class="game-layout">
+                <section class="min-w-0">
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <div class="player-card glass-panel flex-1">
+                            <div class="player-chip">
+                                <div class="player-avatar">♔</div>
+                                <div class="min-w-0">
+                                    <div class="eyebrow">White</div>
+                                    <div class="font-bold text-sm truncate" id="white-player-label">Pemain Putih</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-slate-500 font-black text-xs tracking-widest">VS</div>
+                        <div class="player-card glass-panel flex-1">
+                            <div class="player-chip">
+                                <div class="player-avatar">♚</div>
+                                <div class="min-w-0">
+                                    <div class="eyebrow">Black</div>
+                                    <div class="font-bold text-sm truncate" id="black-player-label">Menunggu lawan</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="board-bay">
+                        <div class="board-container">
+                            <div id="board" class="w-full h-full"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl mt-4 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div class="eyebrow">Your side</div>
+                            <div class="font-bold text-white" id="display-color">---</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-flip-board" class="tool-btn" type="button">↻ Balik papan</button>
+                            <button id="btn-sound" class="tool-btn" type="button" aria-pressed="true">♫ Suara: ON</button>
+                            <button id="btn-leave-room" class="tool-btn !text-rose-300 hover:!text-rose-200">Keluar</button>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="game-sidebar space-y-4">
+                    <div class="glass-panel rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <div class="eyebrow">Live match</div>
+                                <h3 class="text-lg font-bold">Status permainan</h3>
+                            </div>
+                            <span class="text-2xl">♟</span>
+                        </div>
+                        <div id="turn-indicator" class="status-pill flex items-center gap-2 text-emerald-300 text-sm font-bold">
+                            <span class="live-dot"></span> Menunggu pemain
+                        </div>
+                        <p class="text-xs text-slate-400 mt-3 leading-relaxed">Giliran berjalan otomatis tersinkron dengan lawan melalui room yang sama.</p>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-5 history-panel">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="eyebrow">Move tracker</div>
+                                <h3 class="text-lg font-bold">Riwayat langkah</h3>
+                            </div>
+                            <span id="move-count" class="text-xs font-bold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full">0 langkah</span>
+                        </div>
+                        <div id="move-history" class="history-list space-y-1">
+                            <p class="text-sm text-slate-500 text-center py-8">Langkah akan muncul di sini.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-5">
+                        <div class="eyebrow mb-2">Quick tip</div>
+                        <p class="text-sm text-slate-300 leading-relaxed">Klik atau seret bidak untuk bergerak. Perhatikan langkah terakhir dan lindungi raja kamu!</p>
+                        <div class="mt-4 pt-4 border-t border-slate-700/70 flex items-center justify-between">
+                            <span class="text-xs text-slate-500">Room invitation</span>
+                            <button id="btn-copy-room-side" class="text-xs font-bold text-emerald-300 hover:text-emerald-200">Salin kode ↗</button>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfigurasi Firebase milik Anda
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6zYbJAwWClxO55InnYyKgmqT_AU7ZSGc",
+            authDomain: "catur-27a6f.firebaseapp.com",
+            projectId: "catur-27a6f",
+            storageBucket: "catur-27a6f.firebasestorage.app",
+            messagingSenderId: "1074194089380",
+            appId: "1:1074194089380:web:e0e06541e9bf587498ed31",
+            measurementId: "G-LBG1G9TYLS"
+        };
+
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId = null;
+        let unsubscribeRoom = null;
+
+        // Variabel Status Game
+        let game = new Chess();
+        let board = null;
+        let myColor = 'w';
+        let currentRoomId = null;
+        let roomStatus = 'waiting';
+        let gameMode = 'online'; // ai | local | online
+        let aiColor = 'b';
+        let aiDifficulty = 'medium';
+        let aiThinking = false; 
+
+        // Elemen DOM
+        const elLoading = document.getElementById('loading-screen');
+        const elMenu = document.getElementById('menu-view');
+        const elGame = document.getElementById('game-view');
+        
+        // Fungsi Modal
+        window.showModal = (message, title = "Informasi") => {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        };
+        window.closeModal = () => {
+            document.getElementById('custom-modal').classList.add('hidden');
+        };
+
+        // UI helpers
+        let soundEnabled = true;
+        let audioContext = null;
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(showToast.timer);
+            showToast.timer = setTimeout(() => toast.classList.remove('show'), 2200);
+        }
+
+        function playMoveSound(isCapture = false) {
+            if (!soundEnabled) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                audioContext = audioContext || new AudioCtx();
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = isCapture ? 520 : 660;
+                gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.07, audioContext.currentTime + 0.012);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.13);
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.14);
+            } catch (error) { console.debug('Audio tidak tersedia:', error); }
+        }
+
+        function renderMoveHistory() {
+            const history = game.history();
+            const container = document.getElementById('move-history');
+            const count = document.getElementById('move-count');
+            if (!container || !count) return;
+
+            count.textContent = `${history.length} langkah`;
+            if (!history.length) {
+                container.innerHTML = '<p class="text-sm text-slate-500 text-center py-8">Langkah akan muncul di sini.</p>';
+                return;
+            }
+
+            const rows = [];
+            for (let i = 0; i < history.length; i += 2) {
+                const whiteMove = history[i] || '';
+                const blackMove = history[i + 1] || '';
+                const latest = i + 2 >= history.length;
+                rows.push(`<div class="history-row ${latest ? 'latest' : ''}">
+                    <span class="text-slate-500">${Math.floor(i / 2) + 1}.</span>
+                    <span>${whiteMove}</span>
+                    <span>${blackMove}</span>
+                </div>`);
+            }
+            container.innerHTML = rows.join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function highlightLastMove() {
+            if (!board) return;
+            $('.square-55d63').removeClass('highlight-from highlight-to');
+            const history = game.history({ verbose: true });
+            const last = history[history.length - 1];
+            if (last) {
+                $(`#board .square-${last.from}`).addClass('highlight-from');
+                $(`#board .square-${last.to}`).addClass('highlight-to');
+            }
+        }
+
+        async function copyRoomCode() {
+            if (!currentRoomId) return;
+            try {
+                await navigator.clipboard.writeText(currentRoomId);
+                showToast(`Kode ${currentRoomId} berhasil disalin`);
+            } catch (error) {
+                const temp = document.createElement('textarea');
+                temp.value = currentRoomId;
+                temp.style.position = 'fixed';
+                temp.style.opacity = '0';
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                temp.remove();
+                showToast(`Kode ${currentRoomId} berhasil disalin`);
+            }
+        }
+
+        // Buat ID Ruangan (6 karakter)
+        function generateRoomId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Mulai Aplikasi & Login Anonim
+        async function initApp() {
+            // Jangan biarkan layar loading menghalangi mode lokal/AI jika Firebase gagal.
+            try {
+                await signInAnonymously(auth);
+                userId = auth.currentUser?.uid || null;
+                console.info('Firebase Authentication siap.');
+            } catch (error) {
+                userId = null;
+                console.error('Firebase Authentication gagal:', error);
+                showModal(
+                    'Mode AI dan Local tetap dapat dimainkan. Untuk Online Multiplayer, periksa koneksi internet dan aktifkan Anonymous pada Firebase Authentication.',
+                    'Firebase belum terhubung'
+                );
+            } finally {
+                elLoading.classList.add('hidden');
+                elMenu.classList.remove('hidden');
+            }
+        }
+
+        // Inisialisasi Papan Catur
+        function initBoard(color) {
+            myColor = color;
+            game.reset(); 
+            
+            const config = {
+            draggable: true,
+            position: 'start',
+            orientation: color === 'w' ? 'white' : 'black',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd,
+            pieceTheme: function(piece) {
+                const pieces = {
+                    'wP': 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg',
+                    'wR': 'https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg',
+                    'wN': 'https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg',
+                    'wB': 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg',
+                    'wQ': 'https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg',
+                    'wK': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg',
+                    'bP': 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg',
+                    'bR': 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg',
+                    'bN': 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg',
+                    'bB': 'https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg',
+                    'bQ': 'https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg',
+                    'bK': 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg'
+                };
+                return pieces[piece];
+            }
+        };
+            
+            if (board) {
+                board.destroy();
+            }
+            board = Chessboard('board', config);
+            
+            $(window).resize(() => {
+                if(board) board.resize();
+            });
+
+            document.getElementById('room-info-bar').classList.toggle('hidden', gameMode !== 'online');
+            document.getElementById('display-room-id').innerText = currentRoomId || 'OFFLINE';
+            document.getElementById('display-color').innerText = color === 'w' ? 'Bidak Putih' : 'Bidak Hitam';
+            document.getElementById('display-color').className = color === 'w' ? 'font-bold text-lg text-slate-100' : 'font-bold text-lg text-slate-800 bg-slate-300 px-2 py-1 rounded';
+            
+            updateStatusText();
+            highlightLastMove();
+            if (gameMode === 'ai') {
+                document.getElementById('white-player-label').innerText = color === 'w' ? 'Kamu' : 'KnightPlay AI';
+                document.getElementById('black-player-label').innerText = color === 'b' ? 'Kamu' : 'KnightPlay AI';
+            } else if (gameMode === 'local') {
+                document.getElementById('white-player-label').innerText = 'Pemain 1';
+                document.getElementById('black-player-label').innerText = 'Pemain 2';
+            } else {
+                document.getElementById('white-player-label').innerText = color === 'w' ? 'Kamu' : 'Lawan';
+                document.getElementById('black-player-label').innerText = color === 'b' ? 'Kamu' : 'Lawan';
+            }
+        }
+
+        // Logika Catur
+        function onDragStart (source, piece, position, orientation) {
+            if (game.game_over() || aiThinking) return false;
+            if (gameMode === 'online' && roomStatus !== 'playing') return false;
+            if (gameMode !== 'local' && ((myColor === 'w' && piece.search(/^b/) !== -1) ||
+                (myColor === 'b' && piece.search(/^w/) !== -1))) return false;
+            if (gameMode === 'local' && piece.charAt(0) !== game.turn()) return false;
+            if (gameMode === 'ai' && game.turn() !== myColor) return false;
+
+            $('.square-55d63').removeClass('move-hint capture-hint');
+            const legalMoves = game.moves({ square: source, verbose: true });
+            legalMoves.forEach(move => {
+                const targetSquare = $(`#board .square-${move.to}`);
+                targetSquare.addClass(move.captured ? 'move-hint capture-hint' : 'move-hint');
+            });
+        }
+
+        function onDrop (source, target) {
+            let move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q' 
+            });
+
+            $('.square-55d63').removeClass('move-hint capture-hint');
+            if (move === null) return 'snapback';
+            playMoveSound(Boolean(move.captured));
+            if (gameMode === 'online') {
+                updateRoomState();
+            } else {
+                updateStatusText();
+                highlightLastMove();
+                if (gameMode === 'ai' && !game.game_over() && game.turn() === aiColor) {
+                    window.setTimeout(makeAIMove, 250);
+                }
+            }
+        }
+
+        function onSnapEnd () {
+            board.position(game.fen());
+            $('.square-55d63').removeClass('move-hint capture-hint');
+            highlightLastMove();
+            renderMoveHistory();
+        }
+
+        function updateStatusText() {
+            const elStatus = document.getElementById('display-status');
+            
+            if (gameMode === 'online' && roomStatus === 'waiting') {
+                elStatus.innerText = 'Menunggu Lawan...';
+                elStatus.className = 'text-sm font-semibold text-yellow-400 animate-pulse';
+                return;
+            }
+
+            let statusHTML = '';
+            let moveColor = game.turn() === 'w' ? 'Putih' : 'Hitam';
+
+            if (game.in_checkmate()) {
+                statusHTML = `Selesai, ${moveColor === 'Putih' ? 'Hitam' : 'Putih'} Menang!`;
+                elStatus.className = 'text-sm font-semibold text-emerald-400';
+            } else if (game.in_draw()) {
+                statusHTML = 'Selesai (Seri)';
+                elStatus.className = 'text-sm font-semibold text-slate-400';
+            } else {
+                statusHTML = `Giliran: ${moveColor}`;
+                if (game.in_check()) {
+                    statusHTML += ' (SKAK!)';
+                    elStatus.className = 'text-sm font-semibold text-red-400';
+                } else {
+                    elStatus.className = game.turn() === myColor ? 'text-sm font-semibold text-blue-400' : 'text-sm font-semibold text-slate-400';
+                }
+            }
+            elStatus.innerText = gameMode === 'ai' && aiThinking ? 'AI sedang berpikir...' : statusHTML;
+            if (gameMode === 'ai' && aiThinking) elStatus.className = 'text-sm font-semibold text-yellow-300 animate-pulse';
+            const turnIndicator = document.getElementById('turn-indicator');
+            if (turnIndicator) {
+                const finished = game.game_over();
+                turnIndicator.innerHTML = finished
+                    ? `<span class="text-base">🏁</span> ${game.in_checkmate() ? 'Permainan selesai' : 'Hasil: Seri'}`
+                    : `<span class="live-dot"></span> Giliran ${moveColor}${game.in_check() ? ' • SKAK!' : ''}`;
+                turnIndicator.className = game.in_check()
+                    ? 'status-pill flex items-center gap-2 text-rose-300 text-sm font-bold'
+                    : 'status-pill flex items-center gap-2 text-emerald-300 text-sm font-bold';
+            }
+            renderMoveHistory();
+        }
+
+
+        // AI sederhana berbasis minimax + alpha-beta. Semua langkah tetap divalidasi chess.js.
+        const PIECE_VALUES = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+
+        function evaluatePosition() {
+            const boardState = game.board();
+            let score = 0;
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const piece = boardState[row][col];
+                    if (!piece) continue;
+                    let value = PIECE_VALUES[piece.type] || 0;
+                    // Bonus kecil untuk kontrol pusat agar permainan tidak hanya mengejar bidak.
+                    if (piece.type !== 'k') {
+                        const centerDistance = Math.abs(3.5 - row) + Math.abs(3.5 - col);
+                        value += Math.round((7 - centerDistance) * 2);
+                    }
+                    score += piece.color === 'w' ? value : -value;
+                }
+            }
+            return score;
+        }
+
+        function minimax(depth, alpha, beta, maximizingWhite) {
+            if (depth === 0 || game.game_over()) {
+                if (game.in_checkmate()) return game.turn() === 'w' ? -100000 - depth : 100000 + depth;
+                if (game.in_draw()) return 0;
+                return evaluatePosition();
+            }
+            const moves = game.moves({ verbose: true });
+            // Urutkan capture lebih dulu agar alpha-beta pruning lebih efektif.
+            moves.sort((a, b) => Number(Boolean(b.captured)) - Number(Boolean(a.captured)));
+            if (maximizingWhite) {
+                let best = -Infinity;
+                for (const move of moves) {
+                    game.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
+                    best = Math.max(best, minimax(depth - 1, alpha, beta, false));
+                    game.undo();
+                    alpha = Math.max(alpha, best);
+                    if (beta <= alpha) break;
+                }
+                return best;
+            } else {
+                let best = Infinity;
+                for (const move of moves) {
+                    game.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
+                    best = Math.min(best, minimax(depth - 1, alpha, beta, true));
+                    game.undo();
+                    beta = Math.min(beta, best);
+                    if (beta <= alpha) break;
+                }
+                return best;
+            }
+        }
+
+        function makeAIMove() {
+            if (gameMode !== 'ai' || game.game_over() || game.turn() !== aiColor) return;
+            aiThinking = true;
+            updateStatusText();
+            const depth = aiDifficulty === 'easy' ? 1 : aiDifficulty === 'medium' ? 2 : 3;
+            window.setTimeout(() => {
+                try {
+                    const moves = game.moves({ verbose: true });
+                    let bestMove = null;
+                    let bestScore = aiColor === 'w' ? -Infinity : Infinity;
+                    for (const move of moves) {
+                        game.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
+                        const score = minimax(depth - 1, -Infinity, Infinity, game.turn() === 'w');
+                        game.undo();
+                        if ((aiColor === 'w' && score > bestScore) || (aiColor === 'b' && score < bestScore)) {
+                            bestScore = score;
+                            bestMove = move;
+                        }
+                    }
+                    if (bestMove) {
+                        const played = game.move({ from: bestMove.from, to: bestMove.to, promotion: 'q' });
+                        board.position(game.fen());
+                        playMoveSound(Boolean(played && played.captured));
+                    }
+                } finally {
+                    aiThinking = false;
+                    updateStatusText();
+                    highlightLastMove();
+                    renderMoveHistory();
+                }
+            }, 80);
+        }
+
+        function showMenuPanel(panel) {
+            ['mode-choice', 'ai-setup', 'friend-setup', 'online-setup'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== panel);
+            });
+        }
+
+        function startOfflineGame(mode) {
+            gameMode = mode;
+            currentRoomId = null;
+            roomStatus = 'playing';
+            aiThinking = false;
+            myColor = mode === 'ai' ? aiColor : 'w';
+            document.getElementById('room-info-bar').classList.toggle('hidden', true);
+            document.getElementById('display-status').innerText = 'Permainan dimulai';
+            document.getElementById('display-color').innerText = mode === 'ai'
+                ? (aiColor === 'w' ? 'Bidak Putih' : 'Bidak Hitam')
+                : 'Dua pemain • Satu perangkat';
+            document.getElementById('btn-copy-room').classList.add('hidden');
+            document.getElementById('btn-copy-room-side').parentElement.classList.add('hidden');
+            showGameView();
+            initBoard(myColor);
+            document.getElementById('white-player-label').innerText = mode === 'ai'
+                ? (aiColor === 'w' ? 'Kamu' : 'KnightPlay AI') : 'Pemain 1';
+            document.getElementById('black-player-label').innerText = mode === 'ai'
+                ? (aiColor === 'b' ? 'Kamu' : 'KnightPlay AI') : 'Pemain 2';
+            if (mode === 'ai' && aiColor === 'b') window.setTimeout(makeAIMove, 300);
+        }
+
+        // Sinkronisasi Firebase
+        async function createRoom() {
+            if (!userId) {
+                showModal('Mode online membutuhkan koneksi internet dan Firebase Authentication Anonymous yang aktif.', 'Koneksi online belum siap');
+                return;
+            }
+            gameMode = 'online';
+            document.getElementById('btn-copy-room').classList.remove('hidden');
+            document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
+            try {
+                const newRoomId = generateRoomId();
+                const roomRef = doc(db, 'rooms', newRoomId);
+                
+                await setDoc(roomRef, {
+                    white: userId,
+                    black: null,
+                    fen: 'start',
+                    status: 'waiting',
+                    lastUpdated: Date.now()
+                });
+
+                currentRoomId = newRoomId;
+                gameMode = 'online';
+                roomStatus = 'waiting';
+                
+                showGameView();
+                initBoard('w');
+                listenToRoom(newRoomId);
+                
+            } catch (error) {
+                console.error("Error creating room:", error);
+                showModal("Gagal membuat ruangan. Pastikan Firestore dalam mode Test.");
+            }
+        }
+
+        async function joinRoom(roomIdInput) {
+            if (!userId) {
+                showModal('Mode online membutuhkan koneksi internet dan Firebase Authentication Anonymous yang aktif.', 'Koneksi online belum siap');
+                return;
+            }
+            gameMode = 'online';
+            document.getElementById('btn-copy-room').classList.remove('hidden');
+            document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
+            roomIdInput = roomIdInput.trim().toUpperCase();
+            if (!roomIdInput) {
+                showModal("Masukkan ID Ruangan!");
+                return;
+            }
+
+            try {
+                const roomRef = doc(db, 'rooms', roomIdInput);
+                const roomSnap = await getDoc(roomRef);
+
+                if (!roomSnap.exists()) {
+                    showModal("Ruangan tidak ditemukan!");
+                    return;
+                }
+
+                const data = roomSnap.data();
+                
+                if (data.white === userId) {
+                    currentRoomId = roomIdInput;
+                    roomStatus = data.status;
+                    showGameView();
+                    initBoard('w');
+                    game.load(data.fen !== 'start' ? data.fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+                    board.position(game.fen());
+                    listenToRoom(roomIdInput);
+                } else if (!data.black || data.black === userId) {
+                    await updateDoc(roomRef, {
+                        black: userId,
+                        status: 'playing',
+                        lastUpdated: Date.now()
+                    });
+
+                    currentRoomId = roomIdInput;
+                    roomStatus = 'playing';
+                    showGameView();
+                    initBoard('b');
+                    
+                    if (data.fen !== 'start') {
+                        game.load(data.fen);
+                        board.position(game.fen());
+                    }
+                    listenToRoom(roomIdInput);
+                } else {
+                    showModal("Ruangan sudah penuh!");
+                }
+            } catch (error) {
+                console.error("Error joining room:", error);
+                showModal("Gagal bergabung. Pastikan Firestore dalam mode Test.");
+            }
+        }
+
+        function listenToRoom(roomId) {
+            const roomRef = doc(db, 'rooms', roomId);
+            if (unsubscribeRoom) unsubscribeRoom();
+
+            unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
+                if (!docSnap.exists()) {
+                    leaveRoom(false);
+                    showModal("Ruangan telah ditutup.");
+                    return;
+                }
+
+                const data = docSnap.data();
+                if (data.status !== roomStatus) {
+                    roomStatus = data.status;
+                    updateStatusText();
+                    if (roomStatus === 'playing') {
+                        document.getElementById('white-player-label').innerText = myColor === 'w' ? 'Kamu' : 'Lawan';
+                        document.getElementById('black-player-label').innerText = myColor === 'b' ? 'Kamu' : 'Lawan';
+                        showToast('Lawan bergabung. Selamat bermain!');
+                    }
+                }
+
+                if (data.fen !== 'start' && data.fen !== game.fen()) {
+                    game.load(data.fen);
+                    board.position(data.fen);
+                    playMoveSound();
+                    updateStatusText();
+                    highlightLastMove();
+                }
+            });
+        }
+
+        async function updateRoomState() {
+            if (!currentRoomId) return;
+            try {
+                const roomRef = doc(db, 'rooms', currentRoomId);
+                await updateDoc(roomRef, {
+                    fen: game.fen(),
+                    lastUpdated: Date.now()
+                });
+                updateStatusText();
+                highlightLastMove();
+            } catch (error) {
+                console.error("Error updating move:", error);
+            }
+        }
+
+        function leaveRoom(manual = true) {
+            if (unsubscribeRoom) {
+                unsubscribeRoom();
+                unsubscribeRoom = null;
+            }
+            currentRoomId = null;
+            aiThinking = false;
+            elGame.classList.add('hidden');
+            elMenu.classList.remove('hidden');
+            document.getElementById('input-room-id').value = '';
+            document.getElementById('btn-copy-room').classList.remove('hidden');
+            document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
+            showMenuPanel('mode-choice');
+        }
+
+        function showGameView() {
+            elMenu.classList.add('hidden');
+            elGame.classList.remove('hidden');
+            setTimeout(() => { if (board) board.resize(); }, 120);
+        }
+
+        // Event Listeners
+        document.getElementById('btn-mode-ai').addEventListener('click', () => showMenuPanel('ai-setup'));
+        document.getElementById('btn-mode-friend').addEventListener('click', () => showMenuPanel('friend-setup'));
+        document.querySelectorAll('[data-back-menu]').forEach(button => button.addEventListener('click', () => showMenuPanel('mode-choice')));
+        document.querySelectorAll('[data-back-friend]').forEach(button => button.addEventListener('click', () => showMenuPanel('friend-setup')));
+        document.getElementById('btn-local-game').addEventListener('click', () => startOfflineGame('local'));
+        document.getElementById('btn-online-game').addEventListener('click', () => showMenuPanel('online-setup'));
+        document.getElementById('btn-start-ai').addEventListener('click', () => {
+            aiDifficulty = document.getElementById('ai-difficulty').value;
+            aiColor = document.getElementById('ai-color').value;
+            startOfflineGame('ai');
+        });
+        document.getElementById('btn-create-room').addEventListener('click', createRoom);
+        document.getElementById('btn-join-room').addEventListener('click', () => {
+            joinRoom(document.getElementById('input-room-id').value);
+        });
+        document.getElementById('input-room-id').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') joinRoom(e.target.value);
+        });
+        document.getElementById('btn-leave-room').addEventListener('click', () => leaveRoom(true));
+        
+        document.getElementById('btn-copy-room').addEventListener('click', copyRoomCode);
+        document.getElementById('btn-copy-room-side').addEventListener('click', copyRoomCode);
+        document.getElementById('btn-flip-board').addEventListener('click', () => {
+            if (board) board.flip();
+        });
+        document.getElementById('btn-sound').addEventListener('click', (event) => {
+            soundEnabled = !soundEnabled;
+            event.currentTarget.textContent = soundEnabled ? '♫ Suara: ON' : '♫ Suara: OFF';
+            event.currentTarget.setAttribute('aria-pressed', String(soundEnabled));
+            showToast(soundEnabled ? 'Efek suara diaktifkan' : 'Efek suara dimatikan');
+        });
+
+        window.onload = () => initApp();
+    </script>
+</body>
+</html>
