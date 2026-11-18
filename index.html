@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catur Online — Play with Friends</title>
+    <title>Catur Online — Selamat Bermain</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -255,8 +255,8 @@
                 <button id="btn-create-room" class="action-btn w-full bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950">＋ Buat Ruangan Baru</button>
                 <div class="relative flex items-center"><div class="flex-grow border-t border-slate-700"></div><span class="mx-4 text-slate-500 text-xs font-bold tracking-widest">ATAU GABUNG ROOM</span><div class="flex-grow border-t border-slate-700"></div></div>
                 <div class="space-y-3">
-                    <label for="input-room-id" class="eyebrow block text-center">Masukkan kode undangan teman</label>
-                    <input type="text" id="input-room-id" placeholder="KODE ROOM" class="w-full bg-slate-950/70 border border-slate-700 rounded-xl px-4 py-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase text-center font-mono tracking-[.35em] text-lg">
+                    <label for="input-room-id" class="eyebrow block text-center">Masukkan token undangan teman</label>
+                    <input type="text" id="input-room-id" placeholder="TOKEN UNDANGAN" class="w-full bg-slate-950/70 border border-slate-700 rounded-xl px-4 py-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase text-center font-mono tracking-[.35em] text-lg">
                     <button id="btn-join-room" class="action-btn w-full bg-slate-700 hover:bg-slate-600 text-white border border-slate-600">Masuk ke Ruangan</button>
                 </div>
             </div>
@@ -268,7 +268,7 @@
             <!-- Room Info Bar -->
             <div id="room-info-bar" class="w-full glass-panel flex justify-between items-center px-4 sm:px-5 py-4 rounded-2xl mb-5">
                 <div class="flex flex-col">
-                    <span class="eyebrow">Room code</span>
+                    <span class="eyebrow">Invitation token</span>
                     <div class="flex items-center gap-2">
                         <span id="display-room-id" class="font-mono text-lg font-bold text-emerald-300 uppercase bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 rounded-lg tracking-widest">------</span>
                         <button id="btn-copy-room" class="text-blue-400 hover:text-blue-300 text-sm" title="Salin ID">
@@ -358,7 +358,7 @@
                         <p class="text-sm text-slate-300 leading-relaxed">Klik atau seret bidak untuk bergerak. Perhatikan langkah terakhir dan lindungi raja kamu!</p>
                         <div class="mt-4 pt-4 border-t border-slate-700/70 flex items-center justify-between">
                             <span class="text-xs text-slate-500">Room invitation</span>
-                            <button id="btn-copy-room-side" class="text-xs font-bold text-emerald-300 hover:text-emerald-200">Salin kode ↗</button>
+                            <button id="btn-copy-room-side" class="text-xs font-bold text-emerald-300 hover:text-emerald-200">Salin token ↗</button>
                         </div>
                     </div>
                 </aside>
@@ -371,8 +371,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+                import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Konfigurasi Firebase milik Anda
         const firebaseConfig = {
@@ -388,9 +387,16 @@
         // Inisialisasi Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        let userId = null;
+        // Tidak menggunakan Firebase Authentication. Akses room memakai token undangan.
+        const playerToken = (() => {
+            const key = "knightplay-player-token";
+            let token = sessionStorage.getItem(key);
+            if (!token) {
+                token = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+                sessionStorage.setItem(key, token);
+            }
+            return token;
+        })();
         let unsubscribeRoom = null;
 
         // Variabel Status Game
@@ -400,8 +406,10 @@
         let currentRoomId = null;
         let roomStatus = 'waiting';
         let gameMode = 'online'; // ai | local | online
-        let aiColor = 'b';
+        let aiColor = 'b'; // warna bidak pemain
         let aiDifficulty = 'medium';
+        // Bot selalu memainkan warna yang berlawanan dengan pemain.
+        const getAISide = () => (aiColor === 'w' ? 'b' : 'w');
         let aiThinking = false; 
 
         // Elemen DOM
@@ -493,7 +501,7 @@
             if (!currentRoomId) return;
             try {
                 await navigator.clipboard.writeText(currentRoomId);
-                showToast(`Kode ${currentRoomId} berhasil disalin`);
+                showToast(`Token ${currentRoomId} berhasil disalin`);
             } catch (error) {
                 const temp = document.createElement('textarea');
                 temp.value = currentRoomId;
@@ -503,38 +511,22 @@
                 temp.select();
                 document.execCommand('copy');
                 temp.remove();
-                showToast(`Kode ${currentRoomId} berhasil disalin`);
+                showToast(`Token ${currentRoomId} berhasil disalin`);
             }
         }
 
-        // Buat ID Ruangan (6 karakter)
+        // Token undangan acak 16 karakter.
         function generateRoomId() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 6; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
+            const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            return Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
         }
 
-        // Mulai Aplikasi & Login Anonim
+        // Mulai aplikasi tanpa login atau Firebase Authentication.
         async function initApp() {
-            // Jangan biarkan layar loading menghalangi mode lokal/AI jika Firebase gagal.
-            try {
-                await signInAnonymously(auth);
-                userId = auth.currentUser?.uid || null;
-                console.info('Firebase Authentication siap.');
-            } catch (error) {
-                userId = null;
-                console.error('Firebase Authentication gagal:', error);
-                showModal(
-                    'Mode AI dan Local tetap dapat dimainkan. Untuk Online Multiplayer, periksa koneksi internet dan aktifkan Anonymous pada Firebase Authentication.',
-                    'Firebase belum terhubung'
-                );
-            } finally {
-                elLoading.classList.add('hidden');
-                elMenu.classList.remove('hidden');
-            }
+            elLoading.classList.add('hidden');
+            elMenu.classList.remove('hidden');
         }
 
         // Inisialisasi Papan Catur
@@ -628,7 +620,7 @@
             } else {
                 updateStatusText();
                 highlightLastMove();
-                if (gameMode === 'ai' && !game.game_over() && game.turn() === aiColor) {
+                if (gameMode === 'ai' && !game.game_over() && game.turn() === getAISide()) {
                     window.setTimeout(makeAIMove, 250);
                 }
             }
@@ -739,29 +731,73 @@
         }
 
         function makeAIMove() {
-            if (gameMode !== 'ai' || game.game_over() || game.turn() !== aiColor) return;
+            if (gameMode !== 'ai' || game.game_over() || game.turn() !== getAISide() || aiThinking) return;
+
             aiThinking = true;
             updateStatusText();
-            const depth = aiDifficulty === 'easy' ? 1 : aiDifficulty === 'medium' ? 2 : 3;
+
+            // Kedalaman pencarian: Easy 1 ply, Medium 2 ply, Hard 3 ply.
+            const depth = aiDifficulty === 'easy' ? 1 : aiDifficulty === 'hard' ? 3 : 2;
+
             window.setTimeout(() => {
                 try {
+                    if (gameMode !== 'ai' || game.game_over() || game.turn() !== getAISide()) return;
+
+                    const aiSide = getAISide();
+                    const maximizing = aiSide === 'w';
                     const moves = game.moves({ verbose: true });
+
+                    // Dahulukan langkah makan dan promosi agar pencarian lebih efektif.
+                    moves.sort((a, b) =>
+                        (Number(Boolean(b.captured)) - Number(Boolean(a.captured))) ||
+                        (Number(Boolean(b.promotion)) - Number(Boolean(a.promotion)))
+                    );
+
                     let bestMove = null;
-                    let bestScore = aiColor === 'w' ? -Infinity : Infinity;
+                    let bestScore = maximizing ? -Infinity : Infinity;
+                    let alpha = -Infinity;
+                    let beta = Infinity;
+
                     for (const move of moves) {
-                        game.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
-                        const score = minimax(depth - 1, -Infinity, Infinity, game.turn() === 'w');
+                        game.move({
+                            from: move.from,
+                            to: move.to,
+                            promotion: move.promotion || 'q'
+                        });
+
+                        const score = minimax(
+                            depth - 1,
+                            alpha,
+                            beta,
+                            game.turn() === 'w'
+                        );
                         game.undo();
-                        if ((aiColor === 'w' && score > bestScore) || (aiColor === 'b' && score < bestScore)) {
+
+                        if (
+                            (maximizing && score > bestScore) ||
+                            (!maximizing && score < bestScore)
+                        ) {
                             bestScore = score;
                             bestMove = move;
                         }
+
+                        if (maximizing) alpha = Math.max(alpha, bestScore);
+                        else beta = Math.min(beta, bestScore);
                     }
+
                     if (bestMove) {
-                        const played = game.move({ from: bestMove.from, to: bestMove.to, promotion: 'q' });
+                        const played = game.move({
+                            from: bestMove.from,
+                            to: bestMove.to,
+                            promotion: bestMove.promotion || 'q'
+                        });
+
                         board.position(game.fen());
                         playMoveSound(Boolean(played && played.captured));
                     }
+                } catch (error) {
+                    console.error('AI move error:', error);
+                    showModal('Bot mengalami kendala saat menentukan langkah. Silakan mulai ulang permainan.', 'AI Error');
                 } finally {
                     aiThinking = false;
                     updateStatusText();
@@ -778,6 +814,7 @@
         }
 
         function startOfflineGame(mode) {
+            game = new Chess();
             gameMode = mode;
             currentRoomId = null;
             roomStatus = 'playing';
@@ -800,96 +837,96 @@
         }
 
         // Sinkronisasi Firebase
+        // Sinkronisasi Firebase menggunakan token undangan, tanpa Authentication.
         async function createRoom() {
-            if (!userId) {
-                showModal('Mode online membutuhkan koneksi internet dan Firebase Authentication Anonymous yang aktif.', 'Koneksi online belum siap');
-                return;
-            }
             gameMode = 'online';
             document.getElementById('btn-copy-room').classList.remove('hidden');
             document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
+
             try {
                 const newRoomId = generateRoomId();
                 const roomRef = doc(db, 'rooms', newRoomId);
-                
+
                 await setDoc(roomRef, {
-                    white: userId,
+                    white: playerToken,
                     black: null,
                     fen: 'start',
                     status: 'waiting',
+                    createdAt: Date.now(),
                     lastUpdated: Date.now()
                 });
 
                 currentRoomId = newRoomId;
-                gameMode = 'online';
                 roomStatus = 'waiting';
-                
                 showGameView();
                 initBoard('w');
                 listenToRoom(newRoomId);
-                
             } catch (error) {
-                console.error("Error creating room:", error);
-                showModal("Gagal membuat ruangan. Pastikan Firestore dalam mode Test.");
+                console.error('Error creating room:', error);
+                showModal('Gagal membuat room. Periksa koneksi internet dan Firestore Security Rules.', 'Gagal membuat room');
             }
         }
 
         async function joinRoom(roomIdInput) {
-            if (!userId) {
-                showModal('Mode online membutuhkan koneksi internet dan Firebase Authentication Anonymous yang aktif.', 'Koneksi online belum siap');
-                return;
-            }
             gameMode = 'online';
             document.getElementById('btn-copy-room').classList.remove('hidden');
             document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
             roomIdInput = roomIdInput.trim().toUpperCase();
+
             if (!roomIdInput) {
-                showModal("Masukkan ID Ruangan!");
+                showModal('Masukkan token undangan teman!');
                 return;
             }
 
             try {
                 const roomRef = doc(db, 'rooms', roomIdInput);
-                const roomSnap = await getDoc(roomRef);
+                let seat = null;
+                let roomData = null;
 
-                if (!roomSnap.exists()) {
-                    showModal("Ruangan tidak ditemukan!");
-                    return;
-                }
+                await runTransaction(db, async (transaction) => {
+                    const roomSnap = await transaction.get(roomRef);
+                    if (!roomSnap.exists()) throw new Error('ROOM_NOT_FOUND');
 
-                const data = roomSnap.data();
-                
-                if (data.white === userId) {
-                    currentRoomId = roomIdInput;
-                    roomStatus = data.status;
-                    showGameView();
-                    initBoard('w');
-                    game.load(data.fen !== 'start' ? data.fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-                    board.position(game.fen());
-                    listenToRoom(roomIdInput);
-                } else if (!data.black || data.black === userId) {
-                    await updateDoc(roomRef, {
-                        black: userId,
-                        status: 'playing',
-                        lastUpdated: Date.now()
-                    });
+                    const data = roomSnap.data();
+                    roomData = data;
 
-                    currentRoomId = roomIdInput;
-                    roomStatus = 'playing';
-                    showGameView();
-                    initBoard('b');
-                    
-                    if (data.fen !== 'start') {
-                        game.load(data.fen);
-                        board.position(game.fen());
+                    if (data.white === playerToken) {
+                        seat = 'w';
+                    } else if (data.black === playerToken) {
+                        seat = 'b';
+                    } else if (!data.black) {
+                        transaction.update(roomRef, {
+                            black: playerToken,
+                            status: 'playing',
+                            lastUpdated: Date.now()
+                        });
+                        seat = 'b';
+                        roomData = { ...data, black: playerToken, status: 'playing' };
+                    } else {
+                        throw new Error('ROOM_FULL');
                     }
-                    listenToRoom(roomIdInput);
-                } else {
-                    showModal("Ruangan sudah penuh!");
-                }
+                });
+
+                currentRoomId = roomIdInput;
+                roomStatus = roomData.status;
+                showGameView();
+                initBoard(seat);
+
+                const startingFen = roomData.fen && roomData.fen !== 'start'
+                    ? roomData.fen
+                    : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+                game.load(startingFen);
+                board.position(game.fen());
+                listenToRoom(roomIdInput);
             } catch (error) {
-                console.error("Error joining room:", error);
-                showModal("Gagal bergabung. Pastikan Firestore dalam mode Test.");
+                console.error('Error joining room:', error);
+                if (error.message === 'ROOM_NOT_FOUND') {
+                    showModal('Token tidak ditemukan. Periksa kembali token dari temanmu.');
+                } else if (error.message === 'ROOM_FULL') {
+                    showModal('Room sudah memiliki dua pemain.');
+                } else {
+                    showModal('Gagal bergabung. Periksa koneksi internet dan Firestore Security Rules.');
+                }
             }
         }
 
