@@ -839,14 +839,20 @@
         // Sinkronisasi Firebase
         // Sinkronisasi Firebase menggunakan token undangan, tanpa Authentication.
         async function createRoom() {
-            gameMode = 'online';
-            document.getElementById('btn-copy-room').classList.remove('hidden');
-            document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
+            const createButton = document.getElementById('btn-create-room');
+            const originalText = createButton.textContent;
+
+            console.info('[KnightPlay] Tombol Create Room diklik.');
+            createButton.disabled = true;
+            createButton.textContent = 'Menghubungkan ke Firestore...';
 
             try {
-                const newRoomId = generateRoomId();
-                const roomRef = doc(db, 'rooms', newRoomId);
+                if (!db) throw new Error('Firestore belum diinisialisasi.');
 
+                const newRoomId = generateRoomId();
+                console.info('[KnightPlay] Token room dibuat:', newRoomId);
+
+                const roomRef = doc(db, 'rooms', newRoomId);
                 await setDoc(roomRef, {
                     white: playerToken,
                     black: null,
@@ -856,14 +862,29 @@
                     lastUpdated: Date.now()
                 });
 
+                console.info('[KnightPlay] Dokumen room berhasil disimpan.');
+
                 currentRoomId = newRoomId;
                 roomStatus = 'waiting';
+                gameMode = 'online';
+
+                document.getElementById('btn-copy-room').classList.remove('hidden');
+                document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
+
                 showGameView();
                 initBoard('w');
                 listenToRoom(newRoomId);
             } catch (error) {
-                console.error('Error creating room:', error);
-                showModal('Gagal membuat room. Periksa koneksi internet dan Firestore Security Rules.', 'Gagal membuat room');
+                console.error('[KnightPlay] Gagal membuat room:', error);
+                const code = error?.code || 'unknown';
+                const detail = error?.message || String(error);
+                showModal(
+                    `Room gagal dibuat.\nKode: ${code}\nDetail: ${detail}`,
+                    'Gagal membuat room'
+                );
+            } finally {
+                createButton.disabled = false;
+                createButton.textContent = originalText;
             }
         }
 
@@ -1011,6 +1032,7 @@
             startOfflineGame('ai');
         });
         document.getElementById('btn-create-room').addEventListener('click', createRoom);
+        console.info('[KnightPlay] Event tombol Create Room berhasil dipasang.');
         document.getElementById('btn-join-room').addEventListener('click', () => {
             joinRoom(document.getElementById('input-room-id').value);
         });
