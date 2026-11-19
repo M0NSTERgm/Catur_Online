@@ -371,26 +371,22 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-                import { initializeFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+                import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Konfigurasi Firebase milik Anda
         const firebaseConfig = {
-            apiKey: "AIzaSyA6zYbJAwWClxO55InnYyKgmqT_AU7ZSGc",
-            authDomain: "catur-27a6f.firebaseapp.com",
-            projectId: "catur-27a6f",
-            storageBucket: "catur-27a6f.firebasestorage.app",
-            messagingSenderId: "1074194089380",
-            appId: "1:1074194089380:web:e0e06541e9bf587498ed31",
-            measurementId: "G-LBG1G9TYLS"
+            apiKey: "AIzaSyDxcYxcFxGRLrCRiLk4EZV552Nkuar02W0",
+            authDomain: "catur-188da.firebaseapp.com",
+            projectId: "catur-188da",
+            storageBucket: "catur-188da.firebasestorage.app",
+            messagingSenderId: "738289266507",
+            appId: "1:738289266507:web:ec9dab232b55f6b61e42ce",
+            measurementId: "G-CGMCVBS8N0"
         };
 
         // Inisialisasi Firebase
         const app = initializeApp(firebaseConfig);
-        // Paksa Firestore memakai long polling. Ini membantu jaringan/browser
-        // yang memutus WebChannel streaming sebelum operasi write terkirim.
-        const db = initializeFirestore(app, {
-            experimentalForceLongPolling: true
-        });
+        const db = getFirestore(app);
         // Tidak menggunakan Firebase Authentication. Akses room memakai token undangan.
         const playerToken = (() => {
             const key = "knightplay-player-token";
@@ -843,20 +839,14 @@
         // Sinkronisasi Firebase
         // Sinkronisasi Firebase menggunakan token undangan, tanpa Authentication.
         async function createRoom() {
-            const createButton = document.getElementById('btn-create-room');
-            const originalText = createButton.textContent;
-
-            console.info('[KnightPlay] Tombol Create Room diklik.');
-            createButton.disabled = true;
-            createButton.textContent = 'Menghubungkan ke Firestore...';
+            gameMode = 'online';
+            document.getElementById('btn-copy-room').classList.remove('hidden');
+            document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
 
             try {
-                if (!db) throw new Error('Firestore belum diinisialisasi.');
-
                 const newRoomId = generateRoomId();
-                console.info('[KnightPlay] Token room dibuat:', newRoomId);
-
                 const roomRef = doc(db, 'rooms', newRoomId);
+
                 await setDoc(roomRef, {
                     white: playerToken,
                     black: null,
@@ -866,29 +856,14 @@
                     lastUpdated: Date.now()
                 });
 
-                console.info('[KnightPlay] Dokumen room berhasil disimpan.');
-
                 currentRoomId = newRoomId;
                 roomStatus = 'waiting';
-                gameMode = 'online';
-
-                document.getElementById('btn-copy-room').classList.remove('hidden');
-                document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
-
                 showGameView();
                 initBoard('w');
                 listenToRoom(newRoomId);
             } catch (error) {
-                console.error('[KnightPlay] Gagal membuat room:', error);
-                const code = error?.code || 'unknown';
-                const detail = error?.message || String(error);
-                showModal(
-                    `Room gagal dibuat.\nKode: ${code}\nDetail: ${detail}`,
-                    'Gagal membuat room'
-                );
-            } finally {
-                createButton.disabled = false;
-                createButton.textContent = originalText;
+                console.error('Error creating room:', error);
+                showModal('Gagal membuat room. Periksa koneksi internet dan Firestore Security Rules.', 'Gagal membuat room');
             }
         }
 
@@ -1036,7 +1011,6 @@
             startOfflineGame('ai');
         });
         document.getElementById('btn-create-room').addEventListener('click', createRoom);
-        console.info('[KnightPlay] Event tombol Create Room berhasil dipasang.');
         document.getElementById('btn-join-room').addEventListener('click', () => {
             joinRoom(document.getElementById('input-room-id').value);
         });
