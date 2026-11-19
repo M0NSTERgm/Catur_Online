@@ -371,7 +371,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-                import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+                import { initializeFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Konfigurasi Firebase milik Anda
         const firebaseConfig = {
@@ -386,7 +386,11 @@
 
         // Inisialisasi Firebase
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        // Paksa Firestore memakai long polling. Ini membantu jaringan/browser
+        // yang memutus WebChannel streaming sebelum operasi write terkirim.
+        const db = initializeFirestore(app, {
+            experimentalForceLongPolling: true
+        });
         // Tidak menggunakan Firebase Authentication. Akses room memakai token undangan.
         const playerToken = (() => {
             const key = "knightplay-player-token";
