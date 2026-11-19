@@ -517,10 +517,9 @@
 
         // Token undangan acak 16 karakter.
         function generateRoomId() {
-            const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            const bytes = new Uint8Array(16);
-            crypto.getRandomValues(bytes);
-            return Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
+            // Kode undangan numerik 6 digit (000000–999999).
+            const value = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
+            return String(value).padStart(6, '0');
         }
 
         // Mulai aplikasi tanpa login atau Firebase Authentication.
@@ -844,8 +843,25 @@
             document.getElementById('btn-copy-room-side').parentElement.classList.remove('hidden');
 
             try {
-                const newRoomId = generateRoomId();
-                const roomRef = doc(db, 'rooms', newRoomId);
+                // Cari kode 6 digit yang belum dipakai agar room lama tidak tertimpa.
+                let newRoomId = null;
+                let roomRef = null;
+
+                for (let attempt = 0; attempt < 10; attempt++) {
+                    const candidate = generateRoomId();
+                    const candidateRef = doc(db, 'rooms', candidate);
+                    const existingRoom = await getDoc(candidateRef);
+
+                    if (!existingRoom.exists()) {
+                        newRoomId = candidate;
+                        roomRef = candidateRef;
+                        break;
+                    }
+                }
+
+                if (!newRoomId || !roomRef) {
+                    throw new Error('Tidak berhasil mendapatkan kode room kosong. Coba lagi.');
+                }
 
                 await setDoc(roomRef, {
                     white: playerToken,
